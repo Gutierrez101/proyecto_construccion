@@ -1,0 +1,192 @@
+
+# ==================================================
+# QUEUELESS - GITIGNORE
+# Proyecto de gestion de turnos virtuales
+#
+# Frontend: React + Vite
+# Backend: Python + Django REST Framework
+# Database: PostgreSQL
+# Notifications: Firebase Cloud Messaging
+# Operating System: Windows
+# ==================================================
+
+
+# ==================================================
+# 1. PYTHON
+# ==================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.Python
+
+*.egg-info/
+.eggs/
+wheels/
+build/
+dist/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+.coverage
+.coverage.*
+htmlcov/
+
+
+# ==================================================
+# 2. ENTORNOS VIRTUALES
+# ==================================================
+
+.venv/
+venv/
+env/
+ENV/
+virtualenv/
+
+
+# ==================================================
+# 3. DJANGO
+# ==================================================
+
+*.log
+
+local_settings.py
+
+db.sqlite3
+db.sqlite3-journal
+
+staticfiles/
+media/
+
+# IMPORTANTE:
+# NO ignorar las carpetas migrations.
+# Las migraciones de Django SI deben subirse a GitHub.
+
+
+# ==================================================
+# 4. VARIABLES DE ENTORNO
+# ==================================================
+
+.env
+.env.*
+
+*.env
+
+# Permitir archivos de ejemplo
+!.env.example
+!.env.template
+
+
+# ==================================================
+# 5. FIREBASE Y CREDENCIALES PRIVADAS
+# ==================================================
+
+# Carpetas privadas
+secrets/
+**/secrets/
+
+# Archivos de cuentas de servicio Firebase
+*firebase-admin*.json
+*firebase-adminsdk*.json
+*firebase-credentials*.json
+
+# Archivos de cuentas de servicio de Google
+*service-account*.json
+*serviceAccount*.json
+
+# Credenciales y claves privadas
+client_secret*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.p8
+
+
+# ==================================================
+# 6. NODE.JS / REACT / VITE
+# ==================================================
+
+node_modules/
+
+dist/
+.vite/
+
+coverage/
+
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+.npm/
+
+
+# ==================================================
+# 7. POSTGRESQL
+# ==================================================
+
+# Copias de seguridad de bases de datos
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.tar
+
+# Directorios de datos locales
+pgdata/
+postgres-data/
+postgresql-data/
+
+
+# ==================================================
+# 8. FIREBASE LOCAL
+# ==================================================
+
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+
+# ==================================================
+# 9. VISUAL STUDIO CODE
+# ==================================================
+
+.vscode/*
+!.vscode/extensions.json
+
+.idea/
+
+# Permitir recomendaciones de extensiones
+# del equipo de desarrollo.
+
+
+# ==================================================
+# 10. WINDOWS Y OTROS SISTEMAS
+# ==================================================
+
+Thumbs.db
+Thumbs.db:encryptable
+
+Desktop.ini
+
+$RECYCLE.BIN/
+
+.DS_Store
+
+
+# ==================================================
+# 11. ARCHIVOS TEMPORALES
+# ==================================================
+
+*.tmp
+*.temp
+*.swp
+*.swo
+*.old
+*.orig
+
+*.cache
