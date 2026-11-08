@@ -37,12 +37,12 @@ importScripts(
 
 // Configuración pública de Firebase.
 firebase.initializeApp({
-  apiKey: "AIzaSyClmkuF-Tjgpg6ZWhsay20lNl6RwPhq7cI",
-  authDomain: "queueless-35b23.firebaseapp.com",
-  projectId: "queueless-35b23",
-  storageBucket: "queueless-35b23.firebasestorage.app",
-  messagingSenderId: "285139383782",
-  appId: "1:285139383782:web:fe155e1c93e07b9c829227",
+  apiKey: VITE_FIREBASE_API_KEY,
+  authDomain: VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: VITE_FIREBASE_PROJECT_ID,
+  storageBucket: VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: VITE_FIREBASE_APP_ID,
 });
 
 // Inicializar Firebase Messaging.
