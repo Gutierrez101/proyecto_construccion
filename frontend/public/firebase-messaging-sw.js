@@ -1,31 +1,3 @@
-// Capturar el clic antes de cargar las bibliotecas Firebase.
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-
-  const targetUrl = new URL(
-    event.notification.data?.url || "/",
-    self.location.origin
-  ).href;
-
-  event.waitUntil(
-    (async () => {
-      const windows = await self.clients.matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      });
-
-      for (const client of windows) {
-        if (new URL(client.url).origin === self.location.origin) {
-          await client.navigate(targetUrl);
-          return client.focus();
-        }
-      }
-
-      return self.clients.openWindow(targetUrl);
-    })()
-  );
-});
-
 // Bibliotecas Firebase Compat.
 importScripts(
   "https://www.gstatic.com/firebasejs/13.2.0/firebase-app-compat.js"
@@ -49,19 +21,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // Recibir mensajes cuando la aplicación está en segundo plano.
-messaging.onBackgroundMessage((payload) => {
-  const data = payload.data || {};
-
-  return self.registration.showNotification(
-    data.title || "QueueLess",
-    {
-       body: data.body || "Tienes una actualización de tu turno.",
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-192.png",
-            tag: data.tag || "queueless",
-            data: {
-                url: data.url || "/"
-            }
-    }
-  );
+messaging.onBackgroundMessage(function(payload){
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification?.body || 'Por favor, acércate a la ventanilla.',
+    icon: '/icons/icon-512.png',
+    icon: '/icons/icon-192.png'
+  };
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });

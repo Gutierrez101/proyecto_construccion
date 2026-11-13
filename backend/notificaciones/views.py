@@ -1,42 +1,31 @@
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-
-from rest_framework.decorators import (
-    api_view,
-    permission_classes
-)
-
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from turnos.models import VisitorSession
 from .models import PushSubscription
-
+# IMPORTACIÓN AGREGADA
+from turnos.models import VisitorSession
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def registrar_suscripcion(request):
-
     fid = request.data.get("fid")
-
-    visitor_session_id = request.data.get(
-        "visitor_session_id"
-    )
+    visitor_session_id = request.data.get("visitor_session_id")
 
     # Validar los datos recibidos.
     if not fid or not visitor_session_id:
-
         return Response(
-            {
-                "error": "Se requiere FID y sesión de visitante."
-            },
+            {"error": "Se requiere FID y sesión de visitante."},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     # Validar la sesión del ciudadano.
+    # CORRECCIÓN AQUÍ: Se debe pasar el modelo VisitorSession como primer argumento
     sesion = get_object_or_404(
-        VisitorSession,
+        VisitorSession, 
         id=visitor_session_id,
         is_active=True
     )
@@ -59,9 +48,5 @@ def registrar_suscripcion(request):
             "subscription_id": suscripcion.id,
             "created": creada
         },
-        status=(
-            status.HTTP_201_CREATED
-            if creada
-            else status.HTTP_200_OK
-        )
+        status=status.HTTP_201_CREATED if creada else status.HTTP_200_OK
     )
