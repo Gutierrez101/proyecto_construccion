@@ -22,7 +22,7 @@ export default function VistaCiudadano() {
 
   const solicitarTurno = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://192.168.100.45:8000/api/turnos/', {
+    const res = await fetch('http://localhost:8000/api/turnos/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

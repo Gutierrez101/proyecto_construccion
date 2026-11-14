@@ -4,7 +4,7 @@ export default function VistaAdmin() {
   const [turnos, setTurnos] = useState([]);
   const token = localStorage.getItem('token');
   useEffect(() => {
-    fetch('http://192.168.100.45:8000/api/turnos/', {
+    fetch('http://localhost:8000/api/turnos/', {
       headers: {
         'Authorization': `Token ${token}`
       }
