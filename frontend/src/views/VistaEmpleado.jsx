@@ -53,50 +53,96 @@ export default function VistaEmpleado() {
 
     if (res.status === 401) return manejarNoAutorizado();
 
-    if (res.ok && nuevoEstado === 'COMPLETADO') {
-      setTurnoActual(null);
+    if (res.ok) {
+      if (nuevoEstado === 'COMPLETADO') {
+        setTurnoActual(null);
+      } else {
+        setTurnoActual({ ...turnoActual, estado: nuevoEstado });
+      }
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md mt-10">
-      <h2 className="text-2xl font-bold mb-6">Módulo de Atención</h2>
-
-      {!turnoActual ? (
-        <div className="text-center py-10">
-          <button
-            onClick={llamarSiguiente}
-            className="bg-green-600 text-white px-8 py-4 rounded-lg text-xl font-bold hover:bg-green-700"
-          >
-            Llamar Siguiente Turno
-          </button>
+    <div style={{ maxWidth: '720px', margin: '16px auto' }}>
+      <div className="ql-card">
+        <div className="ql-page-header">
+          <div>
+            <h2 className="ql-page-title">Módulo de Atención en Ventanilla</h2>
+            <p className="ql-page-subtitle">
+              Gestión de llamados y atención de trámites asignados
+            </p>
+          </div>
+          <span className="ql-badge ql-badge-llamando">
+            Servicio ID #{SERVICIO_ASIGNADO}
+          </span>
         </div>
-      ) : (
-        <div className="border p-6 rounded-lg bg-gray-50">
-          <h3 className="text-xl">Atendiendo a:</h3>
-          <p className="text-3xl font-bold my-2">
-            {turnoActual.codigo_turno} - {turnoActual.ciudadano_nombre}
-          </p>
-          <p className="text-gray-600 mb-6">
-            Identificación: {turnoActual.ciudadano_identificacion}
-          </p>
 
-          <div className="flex gap-4">
-            <button
-              onClick={() => actualizarEstado('EN_ATENCION')}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              Iniciar Trámite
-            </button>
-            <button
-              onClick={() => actualizarEstado('COMPLETADO')}
-              className="bg-gray-800 text-white px-4 py-2 rounded"
-            >
-              Finalizar Atención
+        {!turnoActual ? (
+          <div className="ql-empty-box">
+            <h3 style={{ fontSize: '1.2rem', color: 'var(--secondary)', marginBottom: '8px' }}>
+              Ventanilla Disponible
+            </h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.92rem' }}>
+              Presione el botón para llamar al siguiente ciudadano en la cola de espera.
+            </p>
+            <button onClick={llamarSiguiente} className="ql-btn ql-btn-success ql-btn-lg">
+              Llamar Siguiente Turno
             </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="ql-attention-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Turno en Ventanilla
+              </span>
+              <span className={`ql-badge ${turnoActual.estado === 'EN_ATENCION' ? 'ql-badge-atencion' : 'ql-badge-llamando'}`}>
+                {turnoActual.estado || 'LLAMANDO'}
+              </span>
+            </div>
+
+            <div style={{ margin: '12px 0' }}>
+              <span style={{ fontSize: '2.6rem', fontWeight: '900', color: 'var(--primary)' }}>
+                {turnoActual.codigo_turno}
+              </span>
+            </div>
+
+            <div className="ql-info-grid">
+              <div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+                  CIUDADANO
+                </p>
+                <p style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--secondary)' }}>
+                  {turnoActual.ciudadano_nombre}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+                  IDENTIFICACIÓN
+                </p>
+                <p style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--secondary)' }}>
+                  {turnoActual.ciudadano_identificacion}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => actualizarEstado('EN_ATENCION')}
+                className="ql-btn ql-btn-primary"
+                disabled={turnoActual.estado === 'EN_ATENCION'}
+              >
+                Iniciar Trámite
+              </button>
+              <button
+                onClick={() => actualizarEstado('COMPLETADO')}
+                className="ql-btn ql-btn-dark"
+              >
+                Finalizar Atención
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

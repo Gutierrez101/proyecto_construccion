@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 export default function VistaAdmin() {
   const [turnos, setTurnos] = useState([]);
   const token = localStorage.getItem('token');
-  useEffect(() => {
+
+  const cargarTurnos = () => {
     fetch('http://localhost:8000/api/turnos/', {
       headers: {
         'Authorization': `Token ${token}`
       }
     })
-      .then(res => {
+      .then((res) => {
         if (res.status === 401) {
           localStorage.removeItem('token');
           window.location.href = '/login';
@@ -17,53 +18,110 @@ export default function VistaAdmin() {
         }
         return res.json();
       })
-      .then(data=>setTurnos(data.results ? data.results : data));
+      .then((data) => setTurnos(data.results ? data.results : data))
+      .catch((err) => console.error('Error al cargar turnos:', err));
+  };
+
+  useEffect(() => {
+    cargarTurnos();
   }, []);
 
   const getBadgeColor = (estado) => {
     const colors = {
-      'PENDIENTE': 'bg-yellow-200 text-yellow-800',
-      'LLAMANDO': 'bg-blue-200 text-blue-800',
-      'EN_ATENCION': 'bg-purple-200 text-purple-800',
-      'COMPLETADO': 'bg-green-200 text-green-800',
-      'CANCELADO': 'bg-red-200 text-red-800'
+      'PENDIENTE': 'ql-badge-pendiente',
+      'LLAMANDO': 'ql-badge-llamando',
+      'EN_ATENCION': 'ql-badge-atencion',
+      'COMPLETADO': 'ql-badge-completado',
+      'CANCELADO': 'ql-badge-cancelado'
     };
-    return colors[estado] || 'bg-gray-200 text-gray-800';
+    return colors[estado] || 'ql-badge-default';
   };
 
+  // Contadores calculados sobre la lista actual de turnos
+  const totalPendientes = turnos.filter((t) => t.estado === 'PENDIENTE').length;
+  const totalActivos = turnos.filter((t) => t.estado === 'LLAMANDO' || t.estado === 'EN_ATENCION').length;
+  const totalCompletados = turnos.filter((t) => t.estado === 'COMPLETADO').length;
+
   return (
-    <div className="w-full bg-white p-6 rounded-lg shadow-md mt-10">
-      <h2 className="text-2xl font-bold mb-6">Monitor General de Turnos (Admin)</h2>
-      
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border">
-          <thead className="bg-gray-800 text-white">
+    <div className="ql-card">
+      <div className="ql-page-header">
+        <div>
+          <h2 className="ql-page-title">Monitor General de Turnos (Admin)</h2>
+          <p className="ql-page-subtitle">
+            Supervisión en tiempo real de los turnos generados y estados de atención
+          </p>
+        </div>
+        <button onClick={cargarTurnos} className="ql-btn ql-btn-outline">
+          Actualizar Lista
+        </button>
+      </div>
+
+      {/* Resumen de indicadores */}
+      <div className="ql-stats-grid">
+        <div className="ql-stat-card">
+          <p className="ql-stat-label">Total Registrados</p>
+          <p className="ql-stat-value">{turnos.length}</p>
+        </div>
+        <div className="ql-stat-card">
+          <p className="ql-stat-label">En Espera</p>
+          <p className="ql-stat-value" style={{ color: 'var(--warning)' }}>
+            {totalPendientes}
+          </p>
+        </div>
+        <div className="ql-stat-card">
+          <p className="ql-stat-label">En Ventanilla</p>
+          <p className="ql-stat-value" style={{ color: 'var(--primary)' }}>
+            {totalActivos}
+          </p>
+        </div>
+        <div className="ql-stat-card">
+          <p className="ql-stat-label">Completados</p>
+          <p className="ql-stat-value" style={{ color: 'var(--success)' }}>
+            {totalCompletados}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabla de turnos */}
+      <div className="ql-table-wrapper">
+        <table className="ql-table">
+          <thead>
             <tr>
-              <th className="py-3 px-4 text-left">Turno</th>
-              <th className="py-3 px-4 text-left">Ciudadano</th>
-              <th className="py-3 px-4 text-left">Identificación</th>
-              <th className="py-3 px-4 text-left">Servicio</th>
-              <th className="py-3 px-4 text-left">Estado</th>
-              <th className="py-3 px-4 text-left">Fecha Creación</th>
+              <th>Turno</th>
+              <th>Ciudadano</th>
+              <th>Identificación</th>
+              <th>Servicio</th>
+              <th>Estado</th>
+              <th>Fecha Creación</th>
             </tr>
           </thead>
           <tbody>
-            {turnos.map((turno) => (
-              <tr key={turno.id} className="border-b hover:bg-gray-50">
-                <td className="py-3 px-4 font-bold">{turno.codigo_turno}</td>
-                <td className="py-3 px-4">{turno.ciudadano_nombre}</td>
-                <td className="py-3 px-4">{turno.ciudadano_identificacion}</td>
-                <td className="py-3 px-4">{turno.servicio_nombre}</td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${getBadgeColor(turno.estado)}`}>
-                    {turno.estado}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  {new Date(turno.fecha_creacion).toLocaleString('es-EC')}
+            {turnos.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                  No existen turnos registrados en este momento.
                 </td>
               </tr>
-            ))}
+            ) : (
+              turnos.map((turno) => (
+                <tr key={turno.id}>
+                  <td style={{ fontWeight: '800', color: 'var(--primary)' }}>
+                    {turno.codigo_turno}
+                  </td>
+                  <td style={{ fontWeight: '600' }}>{turno.ciudadano_nombre}</td>
+                  <td>{turno.ciudadano_identificacion}</td>
+                  <td>{turno.servicio_nombre}</td>
+                  <td>
+                    <span className={`ql-badge ${getBadgeColor(turno.estado)}`}>
+                      {turno.estado}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>
+                    {new Date(turno.fecha_creacion).toLocaleString('es-EC')}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

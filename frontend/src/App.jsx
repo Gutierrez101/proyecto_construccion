@@ -29,14 +29,29 @@ function Navegacion() {
   };
 
   return (
-    <nav className="p-4 bg-blue-600 text-white flex justify-between items-center">
-      <div className="flex gap-4">
-        <Link to="/empleado">Panel Empleado</Link>
-        <Link to="/admin">Dashboard Admin</Link>
+    <nav className="ql-navbar">
+      <div className="ql-navbar-brand">
+        <span>QL</span>
+        QueueLess | Gestión de Turnos
       </div>
-      <button onClick={cerrarSesion} className="bg-red-500 px-3 py-1 rounded text-sm">
-        Cerrar Sesión
-      </button>
+
+      <div className="ql-navbar-links">
+        <Link
+          to="/empleado"
+          className={`ql-nav-link ${location.pathname === '/empleado' ? 'active' : ''}`}
+        >
+          Panel Empleado
+        </Link>
+        <Link
+          to="/admin"
+          className={`ql-nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
+        >
+          Dashboard Admin
+        </Link>
+        <button onClick={cerrarSesion} className="ql-btn ql-btn-danger">
+          Cerrar Sesión
+        </button>
+      </div>
     </nav>
   );
 }
@@ -45,7 +60,7 @@ function App() {
   return (
     <Router>
       <Navegacion />
-      <div className="container mx-auto p-4">
+      <main className="ql-container">
         <Routes>
           <Route path="/ciudadano" element={<VistaCiudadano />} />
           <Route path="/login" element={<Login />} />
@@ -53,7 +68,7 @@ function App() {
           <Route path="/admin" element={<RutaProtegida><VistaAdmin /></RutaProtegida>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </div>
+      </main>
     </Router>
   );
 }
