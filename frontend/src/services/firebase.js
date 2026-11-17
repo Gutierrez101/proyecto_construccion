@@ -25,21 +25,22 @@ export const requestForToken = async () => {
       if (currentToken) {
         return currentToken;
       }
-    } else {
-      console.warn('Permiso de notificaciones denegado por el usuario.');
     }
   } catch (err) {
-    console.error('Error obteniendo el token:', err);
+    console.error('Error obteniendo el token FCM:', err);
   }
 };
 
-export const escucharNotificacionesPrimerPlano = () => {
+export const escucharNotificacionesPrimerPlano = (onNotificacionRecibida) => {
   onMessage(messaging, (payload) => {
     if (Notification.permission === 'granted') {
       new Notification(payload.notification.title, {
         body: payload.notification.body,
         icon: '/icons/icon-192.png',
       });
+    }
+    if(onNotificacionRecibida){
+      onNotificacionRecibida(payload);
     }
   });
 };
