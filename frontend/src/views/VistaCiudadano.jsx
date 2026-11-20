@@ -104,6 +104,23 @@ export default function VistaCiudadano() {
     setFormulario({ nombre: '', identificacion: '', servicio_id: '' });
   };
 
+  const cancelarTurno = async () => {
+    if (!window.confirm(`¿Confirma cancelar el turno ${miTurno.codigo_turno}? Esta acción no se puede deshacer.`)) return;
+    const res = await fetch(`${API_URL}/turnos/${miTurno.id}/cancelar/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ciudadano_nombre: miTurno.ciudadano_nombre, ciudadano_identificacion: miTurno.ciudadano_identificacion })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setMiTurno(data);
+      localStorage.setItem('mi_turno_activo', JSON.stringify(data));
+      consultarEstadoCola(data.id);
+    } else {
+      setErrorMsg(data.error || 'No se pudo cancelar el turno.');
+    }
+  };
+
   const obtenerBadgeEstado = (estado) => {
     switch (estado) {
       case 'LLAMANDO':
@@ -177,6 +194,8 @@ export default function VistaCiudadano() {
                 </p>
               </div>
             )}
+
+            {estadoCola?.estado === 'PENDIENTE' && <button type="button" onClick={cancelarTurno} className="ql-btn ql-btn-danger ql-btn-block" style={{ marginTop: '14px' }}>Cancelar turno</button>}
 
             {/* Mensaje dinámico de estado */}
             <div

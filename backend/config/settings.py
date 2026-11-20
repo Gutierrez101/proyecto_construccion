@@ -137,14 +137,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-FIREBASE_PROJECT_ID = os.getenv(
-    "FIREBASE_PROJECT_ID"
-)
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
 
+firebase_service_account_file = os.getenv("FIREBASE_SERVICE_ACCOUNT_FILE")
 FIREBASE_SERVICE_ACCOUNT_FILE = (
-    BASE_DIR / os.getenv(
-        "FIREBASE_SERVICE_ACCOUNT_FILE"
-    )
+    BASE_DIR / firebase_service_account_file
+    if firebase_service_account_file
+    else None
 )
 
 CORS_ALLOW_ALL_ORIGINS= True
