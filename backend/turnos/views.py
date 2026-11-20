@@ -9,7 +9,8 @@ from django.contrib.auth.models import User
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
@@ -43,13 +44,42 @@ def login_usuario(request):
 
 
 class ServicioViewSet(viewsets.ModelViewSet):
-    queryset = Servicio.objects.filter(activo=True)
+    queryset = Servicio.objects.all()
     serializer_class = ServicioSerializer
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated and self.request.user.is_superuser:
+            return Servicio.objects.all()
+        return Servicio.objects.filter(activo=True)
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), SoloAdmin()]
+
+    def perform_destroy(self, instance):
+        if instance.turnos.filter(estado='PENDIENTE').exists():
+            raise ValidationError({'error': 'No se puede eliminar un servicio con turnos pendientes.'})
+        if instance.turnos.exists():
+            instance.activo = False
+            instance.save(update_fields=['activo'])
+        else:
+            instance.delete()
+
+
+class SoloAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.is_superuser)
+
+
+class PersonalAtencion(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+
+class SinAcceso(BasePermission):
+    def has_permission(self, request, view):
+        return False
 
 
 class TurnoViewSet(viewsets.ModelViewSet):
@@ -58,9 +88,50 @@ class TurnoViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         # El ciudadano puede crear su turno y consultar su posición en la fila sin iniciar sesión
-        if self.action in ['create', 'estado_cola']:
+        if self.action in ['create', 'estado_cola', 'cancelar']:
             return [AllowAny()]
-        return [IsAuthenticated()]
+        if self.action in ['list', 'retrieve', 'llamar_siguiente', 'actualizar_estado', 'atender']:
+            return [IsAuthenticated(), PersonalAtencion()]
+        return [SinAcceso()]
+
+    def get_queryset(self):
+        queryset = Turno.objects.all().order_by('id')
+        if self.action == 'list':
+            fecha = self.request.query_params.get('fecha')
+            servicio = self.request.query_params.get('servicio')
+            estado = self.request.query_params.get('estado')
+            if fecha:
+                queryset = queryset.filter(fecha_creacion__date=fecha)
+            if servicio:
+                queryset = queryset.filter(servicio_id=servicio)
+            if estado:
+                queryset = queryset.filter(estado=estado)
+        return queryset
+
+    @action(detail=True, methods=['patch'], permission_classes=[AllowAny])
+    def cancelar(self, request, pk=None):
+        turno = self.get_object()
+        identificacion = str(request.data.get('ciudadano_identificacion', '')).strip()
+        nombre = str(request.data.get('ciudadano_nombre', '')).strip()
+        if not identificacion or not nombre or identificacion != turno.ciudadano_identificacion or nombre.casefold() != turno.ciudadano_nombre.casefold():
+            return Response({'error': 'Los datos no corresponden al titular del turno.'}, status=status.HTTP_403_FORBIDDEN)
+        if turno.estado != 'PENDIENTE':
+            return Response({'error': 'Solo se pueden cancelar turnos pendientes.'}, status=status.HTTP_400_BAD_REQUEST)
+        turno.estado = 'CANCELADO'
+        turno.save(update_fields=['estado'])
+        self._notificar_avance_cola(turno.servicio_id)
+        return Response(TurnoSerializer(turno).data)
+
+    @action(detail=True, methods=['patch'])
+    def atender(self, request, pk=None):
+        turno = self.get_object()
+        if turno.estado not in ['LLAMANDO', 'EN_ATENCION']:
+            return Response({'error': 'Solo se puede atender un turno llamado o en atención.'}, status=status.HTTP_400_BAD_REQUEST)
+        turno.estado = 'COMPLETADO'
+        turno.fecha_atencion = timezone.now()
+        turno.empleado = request.user
+        turno.save(update_fields=['estado', 'fecha_atencion', 'empleado'])
+        return Response(TurnoSerializer(turno).data)
 
     def _enviar_push_individual(self, token, titulo, cuerpo):
         if not token or not firebase_admin._apps:
@@ -213,7 +284,8 @@ class TurnoViewSet(viewsets.ModelViewSet):
         turno = self.get_object()
         nuevo_estado = request.data.get('estado')
 
-        if nuevo_estado in dict(Turno.ESTADOS).keys():
+        transiciones = {'LLAMANDO': ['EN_ATENCION'], 'EN_ATENCION': ['COMPLETADO']}
+        if nuevo_estado in transiciones.get(turno.estado, []):
             turno.estado = nuevo_estado
             if nuevo_estado == 'COMPLETADO':
                 turno.fecha_atencion = timezone.now()

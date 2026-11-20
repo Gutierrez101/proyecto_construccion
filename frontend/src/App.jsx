@@ -5,17 +5,18 @@ import VistaEmpleado from './views/VistaEmpleado';
 import VistaAdmin from './views/VistaAdmin';
 import Login from './views/Login';
 
-const RutaProtegida = ({ children }) => {
+const RutaRol = ({ rol, children }) => {
   const token = localStorage.getItem('token');
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+  const esAdmin = localStorage.getItem('is_superuser') === 'true';
+  if (!token) return <Navigate to="/login" replace />;
+  if ((rol === 'admin') !== esAdmin) return <Navigate to={esAdmin ? '/admin' : '/empleado'} replace />;
   return children;
 };
 
 function Navegacion() {
   const location = useLocation();
   const token = localStorage.getItem('token');
+  const esAdmin = localStorage.getItem('is_superuser') === 'true';
 
   // El ciudadano que entra por QR o el usuario en login no ven la barra interna
   if (location.pathname === '/ciudadano' || location.pathname === '/login' || !token) {
@@ -36,18 +37,18 @@ function Navegacion() {
       </div>
 
       <div className="ql-navbar-links">
-        <Link
+        {!esAdmin && <Link
           to="/empleado"
           className={`ql-nav-link ${location.pathname === '/empleado' ? 'active' : ''}`}
         >
           Panel Empleado
-        </Link>
-        <Link
+        </Link>}
+        {esAdmin && <Link
           to="/admin"
           className={`ql-nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
         >
           Dashboard Admin
-        </Link>
+        </Link>}
         <button onClick={cerrarSesion} className="ql-btn ql-btn-danger">
           Cerrar Sesión
         </button>
@@ -64,8 +65,8 @@ function App() {
         <Routes>
           <Route path="/ciudadano" element={<VistaCiudadano />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/empleado" element={<RutaProtegida><VistaEmpleado /></RutaProtegida>} />
-          <Route path="/admin" element={<RutaProtegida><VistaAdmin /></RutaProtegida>} />
+          <Route path="/empleado" element={<RutaRol rol="empleado"><VistaEmpleado /></RutaRol>} />
+          <Route path="/admin" element={<RutaRol rol="admin"><VistaAdmin /></RutaRol>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>
