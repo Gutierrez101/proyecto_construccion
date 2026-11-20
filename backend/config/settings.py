@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-%+1m!dv+&9pm&9+i5c#lq95usc5545bwf5vem-fvy6-qo_7w8y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'turnos',
     'notificaciones.apps.NotificacionesConfig',
@@ -136,12 +137,19 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-FIREBASE_PROJECT_ID = os.getenv(
-    "FIREBASE_PROJECT_ID"
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
+
+firebase_service_account_file = os.getenv("FIREBASE_SERVICE_ACCOUNT_FILE")
+FIREBASE_SERVICE_ACCOUNT_FILE = (
+    BASE_DIR / firebase_service_account_file
+    if firebase_service_account_file
+    else None
 )
 
-FIREBASE_SERVICE_ACCOUNT_FILE = (
-    BASE_DIR / os.getenv(
-        "FIREBASE_SERVICE_ACCOUNT_FILE"
-    )
-)
+CORS_ALLOW_ALL_ORIGINS= True
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}

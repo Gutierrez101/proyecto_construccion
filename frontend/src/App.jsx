@@ -1,43 +1,77 @@
-import { useState } from "react";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import VistaCiudadano from './views/VistaCiudadano';
+import VistaEmpleado from './views/VistaEmpleado';
+import VistaAdmin from './views/VistaAdmin';
+import Login from './views/Login';
 
-import {
-    activarNotificaciones
-} from "./services/pushNotifications";
+const RutaRol = ({ rol, children }) => {
+  const token = localStorage.getItem('token');
+  const esAdmin = localStorage.getItem('is_superuser') === 'true';
+  if (!token) return <Navigate to="/login" replace />;
+  if ((rol === 'admin') !== esAdmin) return <Navigate to={esAdmin ? '/admin' : '/empleado'} replace />;
+  return children;
+};
 
+function Navegacion() {
+  const location = useLocation();
+  const token = localStorage.getItem('token');
+  const esAdmin = localStorage.getItem('is_superuser') === 'true';
+
+  // El ciudadano que entra por QR o el usuario en login no ven la barra interna
+  if (location.pathname === '/ciudadano' || location.pathname === '/login' || !token) {
+    return null;
+  }
+
+  const cerrarSesion = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('is_superuser');
+    window.location.href = '/login';
+  };
+
+  return (
+    <nav className="ql-navbar">
+      <div className="ql-navbar-brand">
+        <span>QL</span>
+        QueueLess | Gestión de Turnos
+      </div>
+
+      <div className="ql-navbar-links">
+        {!esAdmin && <Link
+          to="/empleado"
+          className={`ql-nav-link ${location.pathname === '/empleado' ? 'active' : ''}`}
+        >
+          Panel Empleado
+        </Link>}
+        {esAdmin && <Link
+          to="/admin"
+          className={`ql-nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
+        >
+          Dashboard Admin
+        </Link>}
+        <button onClick={cerrarSesion} className="ql-btn ql-btn-danger">
+          Cerrar Sesión
+        </button>
+      </div>
+    </nav>
+  );
+}
 
 function App() {
-
-    const [mensaje, setMensaje] = useState("");
-
-    const activar = async () => {
-
-        const visitorSessionId =
-            import.meta.env.VITE_TEST_VISITOR_SESSION_ID;
-
-        const resultado = await activarNotificaciones(
-            visitorSessionId
-        );
-
-        setMensaje(resultado.message);
-    };
-
-    return (
-
-        <main style={{ padding: "40px" }}>
-
-            <h1>QueueLess</h1>
-
-            <h2>Activación de notificaciones</h2>
-
-            <button onClick={activar}>
-                Activar notificaciones
-            </button>
-
-            <p>{mensaje}</p>
-
-        </main>
-
-    );
+  return (
+    <Router>
+      <Navegacion />
+      <main className="ql-container">
+        <Routes>
+          <Route path="/ciudadano" element={<VistaCiudadano />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/empleado" element={<RutaRol rol="empleado"><VistaEmpleado /></RutaRol>} />
+          <Route path="/admin" element={<RutaRol rol="admin"><VistaAdmin /></RutaRol>} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </main>
+    </Router>
+  );
 }
 
 export default App;

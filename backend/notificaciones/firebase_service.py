@@ -13,6 +13,11 @@ def get_firebase_app():
 
     except ValueError:
 
+        if not settings.FIREBASE_SERVICE_ACCOUNT_FILE:
+            raise RuntimeError(
+                "Firebase no está configurado: define FIREBASE_SERVICE_ACCOUNT_FILE."
+            )
+
         service_account_path = Path(
             settings.FIREBASE_SERVICE_ACCOUNT_FILE
         )

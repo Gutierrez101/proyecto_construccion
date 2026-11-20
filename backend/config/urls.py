@@ -5,7 +5,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     path(
-        "api/notificaciones/",
-        include("notificaciones.urls")
+        "api/",include("turnos.urls")
     ),
 ]

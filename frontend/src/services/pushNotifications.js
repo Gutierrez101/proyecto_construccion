@@ -11,28 +11,30 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Sesión activa del ciudadano.
-let currentVisitorSessionId = null;
-
-// Evitar registrar listeners repetidos.
 let listenersAttached = false;
-
+let currentVisitorSessionId = null;
 
 export async function activarNotificaciones(visitorSessionId) {
 
     try {
 
-        if (!visitorSessionId) {
-            throw new Error("No existe una sesión de visitante.");
-        }
-
-        // 1. Comprobar compatibilidad.
+        // 1. Verificar compatibilidad.
         if (!("Notification" in window)) {
-            throw new Error("El navegador no admite notificaciones.");
+            throw new Error(
+                "El navegador no admite notificaciones."
+            );
         }
 
         if (!(await isSupported())) {
-            throw new Error("Firebase Messaging no es compatible.");
+            throw new Error(
+                "Firebase Messaging no es compatible con este navegador."
+            );
+        }
+
+        if (!visitorSessionId) {
+            throw new Error(
+                "No existe una sesión de visitante."
+            );
         }
 
         // 2. Solicitar permiso.
@@ -43,30 +45,38 @@ export async function activarNotificaciones(visitorSessionId) {
         }
 
         if (permiso !== "granted") {
-            throw new Error("No se autorizó el envío de notificaciones.");
+            throw new Error(
+                "No se concedieron permisos para mostrar notificaciones."
+            );
         }
 
         currentVisitorSessionId = visitorSessionId;
 
         // 3. Registrar Service Worker.
-        const swRegistration =
-            await navigator.serviceWorker.register(
-                "/firebase-messaging-sw.js",
-                { scope: "/" }
+        await navigator.serviceWorker.register(
+            "/firebase-messaging-sw.js",
+            { scope: "/" }
+        );
+
+        // 4. Esperar hasta que esté activo.
+        const registro = await navigator.serviceWorker.ready;
+
+        if (!registro.active) {
+            throw new Error(
+                "El Service Worker no se encuentra activo."
             );
+        }
 
-        // Esperar al Service Worker activo.
-        await navigator.serviceWorker.ready;
-
-        // 4. Inicializar Messaging.
+        // 5. Inicializar Firebase Messaging.
         const messaging = getMessaging(firebaseApp);
 
-        // 5. Escuchar el registro del FID.
+        // 6. Configurar eventos.
         if (!listenersAttached) {
 
+            // Recibir el FID de Firebase.
             onRegistered(messaging, async (fid) => {
 
-                console.log("FID obtenido:", fid);
+                console.log("FID registrado:", fid);
 
                 try {
 
@@ -74,11 +84,9 @@ export async function activarNotificaciones(visitorSessionId) {
                         `${API_URL}/api/notificaciones/suscripciones/`,
                         {
                             method: "POST",
-
                             headers: {
                                 "Content-Type": "application/json"
                             },
-
                             body: JSON.stringify({
                                 fid: fid,
                                 visitor_session_id:
@@ -91,17 +99,13 @@ export async function activarNotificaciones(visitorSessionId) {
 
                     if (!response.ok) {
                         throw new Error(
-                            result.error || "Error registrando FID."
+                            result.error || "Error registrando dispositivo."
                         );
                     }
 
                     console.log(
-                        "Suscripción guardada:",
+                        "Dispositivo guardado en QueueLess:",
                         result
-                    );
-
-                    window.dispatchEvent(
-                        new CustomEvent("queueless:push-registered")
                     );
 
                 } catch (error) {
@@ -110,22 +114,36 @@ export async function activarNotificaciones(visitorSessionId) {
                         "Error enviando FID a Django:",
                         error
                     );
+
                 }
 
             });
 
-            // Mensajes cuando QueueLess está abierta.
-            onMessage(messaging, (payload) => {
+            // Recibir mensajes cuando la página está abierta.
+            onMessage(messaging, async (payload) => {
 
                 console.log(
-                    "Mensaje recibido en primer plano:",
+                    "Notificación FCM recibida:",
                     payload
                 );
 
-                window.dispatchEvent(
-                    new CustomEvent("queueless:push-message", {
-                        detail: payload
-                    })
+                const data = payload.data || {};
+
+                // Mostrar notificación también en primer plano.
+                const activeRegistration =
+                    await navigator.serviceWorker.ready;
+
+                await activeRegistration.showNotification(
+                    data.title || "QueueLess",
+                    {
+                        body: data.body || "Tienes una actualización de tu turno.",
+                        icon: "/icons/icon-192.png",
+                        badge: "/icons/icon-192.png",
+                        tag: data.tag || "queueless",
+                        data: {
+                            url: data.url || "/"
+                        }
+                    }
                 );
 
             });
@@ -133,19 +151,33 @@ export async function activarNotificaciones(visitorSessionId) {
             listenersAttached = true;
         }
 
-        // 6. Registrar instalación en Firebase.
+        // 7. Registrar la instalación en Firebase.
         await register(messaging, {
 
             vapidKey:
                 import.meta.env.VITE_FIREBASE_VAPID_KEY,
 
-            serviceWorkerRegistration: swRegistration
+            serviceWorkerRegistration: registro
 
         });
 
+        // 8. Mostrar notificación de confirmación local.
+        await registro.showNotification(
+            "QueueLess",
+            {
+                body: "¡Las notificaciones se han activado correctamente!",
+                icon: "/icons/icon-192.png",
+                badge: "/icons/icon-192.png",
+                tag: "queueless-activacion",
+                data: {
+                    url: "/"
+                }
+            }
+        );
+
         return {
             success: true,
-            message: "Registro de notificaciones iniciado."
+            message: "Notificaciones activadas correctamente."
         };
 
     } catch (error) {
@@ -159,5 +191,6 @@ export async function activarNotificaciones(visitorSessionId) {
             success: false,
             message: error.message
         };
+
     }
 }
