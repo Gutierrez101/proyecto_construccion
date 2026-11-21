@@ -253,33 +253,60 @@ class TurnoViewSet(viewsets.ModelViewSet):
             "mensaje": mensaje
         })
 
-    # ACCIÓN DEL EMPLEADO: Llamar al siguiente turno y notificar a toda la fila
-    @action(detail=False, methods=['post'])
+        # ACCIÓN DEL EMPLEADO: Llamar al siguiente turno
+    @action(detail=False, methods=['post'], url_path='llamar_siguiente')
     def llamar_siguiente(self, request):
         servicio_id = request.data.get('servicio_id')
-        turno = Turno.objects.filter(servicio_id=servicio_id, estado='PENDIENTE').order_by('id').first()
 
-        if turno:
-            turno.estado = 'LLAMANDO'
-            turno.empleado = request.user if request.user.is_authenticated else User.objects.first()
-            turno.save()
-
-            # 1. Notificar al ciudadano que le toca pasar ahora mismo
-            self._enviar_push_individual(
-                token=turno.fcm_token,
-                titulo="¡Es tu turno!",
-                cuerpo=f"Turno {turno.codigo_turno}: Por favor acércate a la ventanilla."
+        try:
+            servicio_id = int(servicio_id)
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'Debes seleccionar un servicio válido.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            servicio = Servicio.objects.get(
+                id=servicio_id,
+                activo=True
+            )
+        except Servicio.DoesNotExist:
+            return Response(
+                {'error': 'El servicio no existe o está desactivado.'},
+                status=status.HTTP_404_NOT_FOUND
             )
 
-            # 2. Notificar a los demás ciudadanos en espera cuántos turnos faltan antes que ellos
-            self._notificar_avance_cola(servicio_id)
+        turno = Turno.objects.filter(
+            servicio=servicio,
+            estado='PENDIENTE'
+        ).order_by('id').first()
 
-            return Response(TurnoSerializer(turno).data)
+        if not turno:
+            return Response(
+                {
+                    'mensaje': f'No hay ciudadanos pendientes para el servicio {servicio.nombre}.'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        turno.estado = 'LLAMANDO'
+        turno.empleado = request.user
+        turno.save(update_fields=['estado', 'empleado'])
 
-        return Response({"mensaje": "No hay turnos pendientes en este servicio"}, status=status.HTTP_404_NOT_FOUND)
+        self._enviar_push_individual(
+            token=turno.fcm_token,
+            titulo='¡Es tu turno!',
+            cuerpo=f'Turno {turno.codigo_turno}: Por favor acércate a la ventanilla.'
+        )
+
+        self._notificar_avance_cola(servicio.id)
+        return Response(
+            TurnoSerializer(turno).data,
+            status=status.HTTP_200_OK
+        )
 
     # ACCIÓN DEL EMPLEADO: Iniciar atención, completar o cancelar turno
-    @action(detail=True, methods=['patch'])
+    @action(detail=True, methods=['patch'], url_path='actualizar_estado')
     def actualizar_estado(self, request, pk=None):
         turno = self.get_object()
         nuevo_estado = request.data.get('estado')
